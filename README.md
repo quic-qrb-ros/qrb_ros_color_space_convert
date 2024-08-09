@@ -27,7 +27,7 @@ Currently, we only support two color space format: NV12 and RGB888.
      ```bash
      git clone https://github.com/quic-qrb-ros/lib_mem_dmabuf.git
      git clone https://github.com/quic-qrb-ros/qrb_ros_transport.git
-     git clone https://github.com/quic-qrb-ros/qrb_ros_colorspace_convert.git
+     git clone https://github.com/quic-qrb-ros/qrb_ros_color_space_convert.git
      ```
 4. Build this project
      ```bash

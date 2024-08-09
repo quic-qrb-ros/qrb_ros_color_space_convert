@@ -15,7 +15,10 @@ namespace qrb_ros::colorspace_convert
 ColorspaceConvertNode::ColorspaceConvertNode(const rclcpp::NodeOptions& options)
 : rclcpp::Node("colorspace_convert_node", options),
   frame_cnt_(0),
-  total_latency_(0)
+  total_latency_(0),
+  convert_latency_(0),
+  test_flag_(false),
+  accelerator_()
 {
   // set parameter
   this->declare_parameter<std::string>("conversion_type", "nv12_to_rgb8");
@@ -56,12 +59,14 @@ bool ColorspaceConvertNode::convert_core(
     const qrb_ros::transport::type::Image &handler, const std::string &type)
 {
   // For test: set up a timer to calculate FPS every 5 seconds
-  if (latency_fps_test_){
+  if (latency_fps_test_ && !test_flag_){
+    test_flag_ = true;
     fps_timer_ = this->create_wall_timer(
         std::chrono::seconds(calculate_time),
         std::bind(&ColorspaceConvertNode::calculate_fps_and_latency, this));
-    node_start_time_ = std::chrono::steady_clock::now();
   }
+  if (latency_fps_test_)
+    node_start_time_ = std::chrono::steady_clock::now();
 
   std::string encoding = handler.encoding;
   uint32_t alignd_width = align_width(handler.width);
@@ -74,7 +79,6 @@ bool ColorspaceConvertNode::convert_core(
 
   // core part
   bool success = false;
-  qrb::colorspace_convert_lib::OpenGLESAccelerator accelerator;
   auto out_msg = std::make_unique<qrb_ros::transport::type::Image>();
   int img_size = 0;
   if (encoding == "nv12")
@@ -84,7 +88,7 @@ bool ColorspaceConvertNode::convert_core(
 
   auto dmabuf = lib_mem_dmabuf::DmaBuffer::alloc(img_size, "/dev/dma_heap/system");
 
-  out_msg->dmabuf = dmabuf;
+  out_msg->dmabuf = std::move(dmabuf);
   out_msg->header = handler.header;
   out_msg->width = handler.width;
   out_msg->height = handler.height;
@@ -96,10 +100,10 @@ bool ColorspaceConvertNode::convert_core(
 
   if (type == "nv12_to_rgb8") {
     out_msg->encoding = "rgb8";
-    success = accelerator.nv12_to_rgb8(input_fd, output_fd, alignd_width, alignd_height);
+    success = accelerator_.nv12_to_rgb8(input_fd, output_fd, alignd_width, alignd_height);
   } else if (type == "rgb8_to_nv12") {
     out_msg->encoding = "nv12";
-    success = accelerator.rgb8_to_nv12(input_fd, output_fd, alignd_width, alignd_height);
+    success = accelerator_.rgb8_to_nv12(input_fd, output_fd, alignd_width, alignd_height);
   }
 
   if (latency_fps_test_)
@@ -150,9 +154,9 @@ void ColorspaceConvertNode::calculate_fps_and_latency()
   auto convert_latency = (static_cast<double>(convert_latency_) / frame_cnt_) / 1000;
   auto total_latency = (static_cast<double>(total_latency_) / frame_cnt_) / 1000;
 
-  RCLCPP_INFO(this->get_logger(), "Current FPS: %.2f", fps);
-  RCLCPP_INFO(this->get_logger(), "Colorspace convert Latency: %.2f ms", convert_latency);
-  RCLCPP_INFO(this->get_logger(), "Average node Latency: %.2f ms", total_latency);
+  RCLCPP_INFO(this->get_logger(),
+      "FPS: %.4f, convert_latency: %.4f ms, total_latency: %.4f ms",
+      fps, convert_latency, total_latency);
 
   // Reset counters and start time
   frame_cnt_ = 0;
