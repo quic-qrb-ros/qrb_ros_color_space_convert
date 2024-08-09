@@ -19,6 +19,7 @@ public:
   explicit ColorspaceConvertNode(const rclcpp::NodeOptions& options);
 
 private:
+  qrb::colorspace_convert_lib::OpenGLESAccelerator accelerator_;
   std::shared_ptr<rclcpp::Subscription<qrb_ros::transport::type::Image>> handle_sub_;
   std::shared_ptr<rclcpp::Publisher<qrb_ros::transport::type::Image>> handle_pub_;
   std::string conversion_type_;
@@ -28,7 +29,7 @@ private:
 
   // test latency and fps
   rclcpp::TimerBase::SharedPtr fps_timer_;
-  int frame_cnt_;
+  uint32_t frame_cnt_;
   std::chrono::time_point<std::chrono::steady_clock> node_start_time_;
   std::chrono::time_point<std::chrono::steady_clock> node_end_time_;
   std::chrono::time_point<std::chrono::steady_clock> convert_start_time_;
@@ -36,6 +37,7 @@ private:
   uint64_t total_latency_;
   uint64_t convert_latency_;
   bool latency_fps_test_;
+  bool test_flag_;
   void calculate_fps_and_latency();
 };
 }   // namespace qrb_ros::colorspace_convert
