@@ -57,7 +57,10 @@ Currently, we only support two color space format: NV12 and RGB888.
 ssh root@[ip-addr]
 (ssh) export XDG_RUNTIME_DIR=/dev/socket/weston/
 (ssh) export WAYLAND_DISPLAY=wayland-1
+(ssh) export FASTRTPS_DEFAULT_PROFILES_FILE=/opt/qcom/qirp-sdk/usr/share/qrb_ros_colorspace_convert/config/large_message_profile.xml
 ```
+
+regarding the large_message_profile.xml, you can resize the segment_size of large_message_profile.xml for your project requirement.
 
 Run the ROS2 package.
 
