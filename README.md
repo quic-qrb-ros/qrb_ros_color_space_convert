@@ -60,7 +60,7 @@ ssh root@[ip-addr]
 (ssh) export FASTRTPS_DEFAULT_PROFILES_FILE=/opt/qcom/qirp-sdk/usr/share/qrb_ros_colorspace_convert/config/large_message_profile.xml
 ```
 
-regarding the large_message_profile.xml, you can resize the segment_size of large_message_profile.xml for your project requirement.
+You can resize the segment_size of large_message_profile.xml for your project requirement.
 
 Run the ROS2 package.
 
