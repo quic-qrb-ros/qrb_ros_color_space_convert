@@ -18,4 +18,4 @@ rclcpp_components_register_nodes(${PROJECT_NAME}
   "qrb_ros::colorspace_convert::ColorspaceConvertNode"
 )
 
-ament_auto_package(INSTALL_TO_SHARE launch)
+ament_auto_package(INSTALL_TO_SHARE launch config)
