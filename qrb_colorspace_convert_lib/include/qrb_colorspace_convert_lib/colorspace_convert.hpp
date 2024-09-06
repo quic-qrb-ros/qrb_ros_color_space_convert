@@ -11,7 +11,6 @@ namespace qrb::colorspace_convert_lib
 class OpenGLESAccelerator
 {
 public:
-  OpenGLESAccelerator();
   ~OpenGLESAccelerator();
 
   /// Convert NV12 to RGB8
@@ -32,15 +31,9 @@ private:
   bool egl_init();
   bool egl_deinit();
 
-  EGLDisplay display_;
-  EGLContext context_;
-  GLuint framebuffer_;
-  bool initialized_;
-  GLuint textures_[2];
-  GLProgram gl_program_;
-
-  EGLImageKHR src_img;
-  EGLImageKHR out_img;
+  EGLDisplay display_ = EGL_NO_DISPLAY;
+  EGLContext context_ = EGL_NO_CONTEXT;
+  bool initialized_ = false;
 };
 
 }  // namespace qrb::colorspace_convert_lib
