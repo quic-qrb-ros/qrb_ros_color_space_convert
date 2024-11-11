@@ -14,7 +14,7 @@
   <depend>std_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>qrb_colorspace_convert_lib</depend>
-  <depend>qrb_ros_transport</depend>
+  <depend>qrb_ros_transport_image_type</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

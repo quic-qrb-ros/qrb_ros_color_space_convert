@@ -9,7 +9,7 @@
 #include <sensor_msgs/msg/image.hpp>
 #include <chrono>
 #include "qrb_colorspace_convert_lib/colorspace_convert.hpp"
-#include "qrb_ros_transport/type/image.hpp"
+#include "qrb_ros_transport_image_type/image.hpp"
 
 namespace qrb_ros::colorspace_convert
 {
