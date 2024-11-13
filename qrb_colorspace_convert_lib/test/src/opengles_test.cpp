@@ -14,16 +14,13 @@
 #include <unistd.h>
 
 #include <fstream>
-#include <sys/ioctl.h>
-#include <sys/mman.h>
-#include <unistd.h>
 
 #define ION_SECURE_HEAP_ALIGNMENT (0x100000)
 #define ALIGN(x, y) (((x) + (y)-1) & (~((y)-1)))
 
 static int alloc_dma_buf(int size)
 {
- int heap_fd = open("/dev/dma_heap/system", O_RDONLY | O_CLOEXEC);
+  int heap_fd = open("/dev/dma_heap/system", O_RDONLY | O_CLOEXEC);
   if (heap_fd < 0) {
     std::cerr << "open dma heap failed" << std::endl;
     return -1;
@@ -41,13 +38,13 @@ static int alloc_dma_buf(int size)
   return heap_data.fd;
 }
 
-static int mock_data_from_file(int size, const std::string& path)
+static int mock_data_from_file(int size, const std::string & path)
 {
   int fd = alloc_dma_buf(size);
   if (fd <= 0) {
     return -1;
   }
-  char* dst = (char*)mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  char * dst = (char *)mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
   if (dst == MAP_FAILED) {
     std::cerr << "storage data: mmap failed" << std::endl;
     return -1;
@@ -65,9 +62,9 @@ static int mock_data_from_file(int size, const std::string& path)
   return fd;
 }
 
-static void dump_data_to_file(int fd, int size, const std::string& path)
+static void dump_data_to_file(int fd, int size, const std::string & path)
 {
-  char* dst = (char*)mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
+  char * dst = (char *)mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
   if (dst == MAP_FAILED) {
     std::cerr << "mmap failed" << std::endl;
     return;

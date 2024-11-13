@@ -4,28 +4,29 @@
 #ifndef QRB_ROS_COLORSPACE_CONVERT__COLORSPACE_CONVERT_HPP_
 #define QRB_ROS_COLORSPACE_CONVERT__COLORSPACE_CONVERT_HPP_
 
+#include <chrono>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
-#include <chrono>
+
 #include "qrb_colorspace_convert_lib/colorspace_convert.hpp"
-#include "qrb_ros_transport/type/image.hpp"
+#include "qrb_ros_transport_image_type/image.hpp"
 
 namespace qrb_ros::colorspace_convert
 {
 class ColorspaceConvertNode : public rclcpp::Node
 {
 public:
-  explicit ColorspaceConvertNode(const rclcpp::NodeOptions& options);
+  explicit ColorspaceConvertNode(const rclcpp::NodeOptions & options);
 
 private:
   qrb::colorspace_convert_lib::OpenGLESAccelerator accelerator_;
   std::shared_ptr<rclcpp::Subscription<qrb_ros::transport::type::Image>> handle_sub_;
   std::shared_ptr<rclcpp::Publisher<qrb_ros::transport::type::Image>> handle_pub_;
   std::string conversion_type_;
-  void rgb8_to_nv12_callback(const qrb_ros::transport::type::Image& handler);
-  void nv12_to_rgb8_callback(const qrb_ros::transport::type::Image& handler);
-  bool convert_core(const qrb_ros::transport::type::Image& handler, const std::string& type);
+  void rgb8_to_nv12_callback(const qrb_ros::transport::type::Image & handler);
+  void nv12_to_rgb8_callback(const qrb_ros::transport::type::Image & handler);
+  bool convert_core(const qrb_ros::transport::type::Image & handler, const std::string & type);
 
   // test latency and fps
   rclcpp::TimerBase::SharedPtr fps_timer_;
@@ -40,6 +41,6 @@ private:
   bool test_flag_;
   void calculate_fps_and_latency();
 };
-}   // namespace qrb_ros::colorspace_convert
+}  // namespace qrb_ros::colorspace_convert
 
 #endif  // QRB_ROS_COLORSPACE_CONVERT__COLORSPACE_CONVERT_HPP_

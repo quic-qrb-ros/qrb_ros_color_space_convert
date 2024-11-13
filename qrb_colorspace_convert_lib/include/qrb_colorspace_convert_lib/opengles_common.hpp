@@ -21,7 +21,7 @@
   check_gl_error(__FILE__, __LINE__);
 #endif
 
-void check_gl_error(const char* file, int line);
+void check_gl_error(const char * file, int line);
 
 namespace qrb::colorspace_convert_lib
 {
@@ -35,7 +35,7 @@ public:
   /// set shaders for GL program
   /// @param vshader vertex shader string
   /// @param fshader fragment shader string
-  bool set_shaders(const std::string& vshader, const std::string& fshader);
+  bool set_shaders(const std::string & vshader, const std::string & fshader);
 
   /// GL program id
   inline GLuint id() const { return id_; }
