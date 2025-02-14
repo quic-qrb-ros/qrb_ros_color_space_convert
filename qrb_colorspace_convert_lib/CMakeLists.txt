@@ -22,13 +22,14 @@ target_link_libraries(${PROJECT_NAME}
 
 if(BUILD_TESTING)
   find_package(ament_cmake_auto REQUIRED)
+  find_package(ament_cmake_gtest REQUIRED)
 
   ament_auto_find_build_dependencies()
 
   ament_auto_add_executable(opengles_test
     test/opengles_test.cpp
   )
-  ament_auto_add_test(opengles_test)
+  ament_add_gtest(opengles_test test/opengles_test.cpp)
 endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION 1)
