@@ -25,10 +25,6 @@ if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
 
   ament_auto_find_build_dependencies()
-
-  ament_auto_add_executable(opengles_test
-    test/opengles_test.cpp
-  )
   ament_add_gtest(opengles_test test/opengles_test.cpp)
 endif()
 
