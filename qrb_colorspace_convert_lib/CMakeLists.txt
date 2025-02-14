@@ -21,10 +21,23 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)
-  find_package(ament_cmake_gtest REQUIRED)
 
-  ament_auto_add_gtest(opengles_test test/opengles_test.cpp)
-  target_compile_definitions(opengles_test PRIVATE "-DTEST_PUBLISHER")
+  include_directories(test/include)
+
+  macro(add_test_module module)
+    add_executable(${module}_test
+      test/src/${module}_test.cpp
+    )
+    install(TARGETS
+      ${module}_test
+      DESTINATION bin/
+    )
+  endmacro(add_test_module)
+
+  add_test_module(opengles)
+  target_link_libraries(opengles_test
+    ${PROJECT_NAME}
+  )
 
 endif()
 
