@@ -21,6 +21,10 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)
+  find_package(ament_cmake_auto REQUIRED)
+
+  ament_auto_find_build_dependencies()
+
   ament_auto_add_executable(opengles_test
     test/opengles_test.cpp
   )
