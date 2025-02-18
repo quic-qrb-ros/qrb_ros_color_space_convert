@@ -13,13 +13,13 @@
 #define GL_GLEXT_PROTOTYPES
 #include <GLES2/gl2ext.h>
 
-#ifndef CHECK_GL_ERRORS
-#define GL(func) func;
-#else
+// #ifndef CHECK_GL_ERRORS
+// #define GL(func) func;
+// #else
 #define GL(func)                                                                                   \
   func;                                                                                            \
   check_gl_error(__FILE__, __LINE__);
-#endif
+// #endif
 
 void check_gl_error(const char * file, int line);
 
