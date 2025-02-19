@@ -89,7 +89,7 @@ int test_nv12_to_rgb8()
   int align_height = ALIGN(height, 32);
   int align_width = ALIGN(width, 128);
 
-  int input_fd = mock_data_from_file(align_width * align_height * 1.5, "/home/qrobot/src.yuv");
+  int input_fd = mock_data_from_file(align_width * align_height * 1.5, "/data/src.yuv");
   int output_fd = alloc_dma_buf(align_width * align_height * 4);
 
   std::cout << "infd: " << input_fd << ", out fd: " << output_fd << std::endl;
@@ -106,7 +106,7 @@ int test_nv12_to_rgb8()
     std::cerr << "nv12 to rgb8 failed" << std::endl;
   } else {
     std::cout << "nv12 to rgb8 success" << std::endl;
-    dump_data_to_file(output_fd, align_width * align_height * 4, "/home/qrobot/dst.rgb8");
+    dump_data_to_file(output_fd, align_width * align_height * 4, "/data/dst.rgb8");
   }
 
   close(input_fd);
