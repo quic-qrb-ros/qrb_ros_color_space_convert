@@ -92,6 +92,7 @@ bool ColorspaceConvertNode::convert_core(const qrb_ros::transport::type::Image &
   out_msg->height = handler.height;
   auto input_fd = handler.dmabuf->fd();
   auto output_fd = out_msg->dmabuf->fd();
+  RCLCPP_ERROR(this->get_logger(), "input_fd:%d, output_fd:%d\n", input_fd, output_fd);
 
   if (latency_fps_test_)
     convert_start_time_ = std::chrono::steady_clock::now();

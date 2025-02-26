@@ -6,7 +6,6 @@
 #include <drm/drm_fourcc.h>
 
 #include <iostream>
-#include <sys/mman.h>
 
 namespace qrb::colorspace_convert_lib
 {
@@ -131,24 +130,52 @@ bool OpenGLESAccelerator::nv12_to_rgb8(int in_fd, int out_fd, int width, int hei
   GL(glGenFramebuffers(1, &framebuffer));
   GL(glGenTextures(2, textures));
 
-  // 设置输入纹理
-  GL(glBindTexture(GL_TEXTURE_2D, textures[0]));
-  GL(glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, width, height, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, nullptr));
-  // 从 in_fd 读取数据并上传到纹理
-  void* nv12_data = mmap(nullptr, width * height * 3 / 2, PROT_READ, MAP_SHARED, in_fd, 0);
-  if (nv12_data == MAP_FAILED) {
-    std::cerr << "Failed to map input file descriptor" << std::endl;
+  // set input texture
+  // clang-format off
+  EGLint in_attribs[32] = {
+    EGL_WIDTH, width,
+    EGL_HEIGHT, height,
+    EGL_LINUX_DRM_FOURCC_EXT, DRM_FORMAT_NV12,
+    EGL_DMA_BUF_PLANE0_FD_EXT, in_fd,
+    EGL_DMA_BUF_PLANE0_PITCH_EXT, width,
+    EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
+    EGL_DMA_BUF_PLANE1_PITCH_EXT, width,
+    EGL_DMA_BUF_PLANE1_OFFSET_EXT, width * height,
+    EGL_NONE
+  };
+  // clang-format on
+  auto src_img = eglCreateImageKHR(display_, context_, EGL_LINUX_DMA_BUF_EXT, NULL, in_attribs);
+  if (src_img == EGL_NO_IMAGE_KHR) {
+    std::cerr << "Failed to create source EGL image: " << std::hex << eglGetError() << std::endl;
     return false;
   }
-  GL(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_LUMINANCE, GL_UNSIGNED_BYTE, nv12_data));
-  munmap(nv12_data, width * height * 3 / 2);
+  GL(glBindTexture(GL_TEXTURE_EXTERNAL_OES, textures[0]));
+  GL(glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, src_img));
+  if (glGetError() != GL_NO_ERROR) {
+    std::cerr << "Failed to bind source EGL image to texture" << std::endl;
+    return false;
+  }
 
-  // 设置输出纹理
-  GL(glBindTexture(GL_TEXTURE_2D, textures[1]));
-  GL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr));
-  // 绑定输出纹理到帧缓冲区
+  // set output texture
+  // clang-format off
+  EGLint out_attribs[32] = {
+    EGL_WIDTH, width,
+    EGL_HEIGHT, height,
+    EGL_LINUX_DRM_FOURCC_EXT, DRM_FORMAT_BGR888,  // for external RGB888
+    EGL_DMA_BUF_PLANE0_FD_EXT, out_fd,
+    EGL_DMA_BUF_PLANE0_PITCH_EXT, width * 3,
+    EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
+    EGL_NONE
+  };
+  // clang-format on
+  auto out_img = eglCreateImageKHR(display_, context_, EGL_LINUX_DMA_BUF_EXT, NULL, out_attribs);
+  GL(glBindTexture(GL_TEXTURE_EXTERNAL_OES, textures[1]));
+  GL(glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, out_img));
+
+  // bind output texture to framebuffer color attachment
   GL(glBindFramebuffer(GL_FRAMEBUFFER, framebuffer));
-  GL(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textures[1], 0));
+  GL(glFramebufferTexture2D(
+      GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_EXTERNAL_OES, textures[1], 0));
 
   if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
     std::cerr << "frame buffer is not complete" << std::endl;
@@ -170,7 +197,7 @@ bool OpenGLESAccelerator::nv12_to_rgb8(int in_fd, int out_fd, int width, int hei
   GL(glUseProgram(gl_program.id()));
 
   GL(glActiveTexture(GL_TEXTURE0));
-  GL(glBindTexture(GL_TEXTURE_2D, textures[0]));
+  GL(glBindTexture(GL_TEXTURE_EXTERNAL_OES, textures[0]));
 
   GL(glEnableVertexAttribArray(0));
   GL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, verts));
@@ -184,18 +211,11 @@ bool OpenGLESAccelerator::nv12_to_rgb8(int in_fd, int out_fd, int width, int hei
   GL(glDisableVertexAttribArray(0));
   GL(glDisableVertexAttribArray(1));
   GL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-
-  // 从输出纹理读取数据并写入 out_fd
-  void* rgb_data = mmap(nullptr, width * height * 3, PROT_WRITE, MAP_SHARED, out_fd, 0);
-  if (rgb_data == MAP_FAILED) {
-    std::cerr << "Failed to map output file descriptor" << std::endl;
-    return false;
-  }
-  GL(glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, rgb_data));
-  munmap(rgb_data, width * height * 3);
-
   GL(glDeleteFramebuffers(1, &framebuffer));
   GL(glDeleteTextures(2, textures));
+
+  GL(eglDestroyImageKHR(display_, src_img));
+  GL(eglDestroyImageKHR(display_, out_img));
 
   return true;
 }
@@ -246,24 +266,52 @@ bool OpenGLESAccelerator::rgb8_to_nv12(int in_fd, int out_fd, int width, int hei
   GL(glGenFramebuffers(1, &framebuffer));
   GL(glGenTextures(2, textures));
 
-  // 设置输入纹理
-  GL(glBindTexture(GL_TEXTURE_2D, textures[0]));
-  GL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr));
-  // 从 in_fd 读取数据并上传到纹理
-  void* rgb_data = mmap(nullptr, width * height * 3, PROT_READ, MAP_SHARED, in_fd, 0);
-  if (rgb_data == MAP_FAILED) {
-    std::cerr << "Failed to map input file descriptor" << std::endl;
+  // set input texture
+  // clang-format off
+  EGLint in_attribs[32] = {
+    EGL_WIDTH, width,
+    EGL_HEIGHT, height,
+    EGL_LINUX_DRM_FOURCC_EXT, DRM_FORMAT_BGR888,  // for external RGB888,
+    EGL_DMA_BUF_PLANE0_FD_EXT, in_fd,
+    EGL_DMA_BUF_PLANE0_PITCH_EXT, width * 3,
+    EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
+    EGL_NONE
+  };
+  // clang-format on
+  auto src_img = eglCreateImageKHR(display_, context_, EGL_LINUX_DMA_BUF_EXT, NULL, in_attribs);
+  if (src_img == EGL_NO_IMAGE_KHR) {
+    std::cerr << "Failed to create source EGL image: " << std::hex << eglGetError() << std::endl;
     return false;
   }
-  GL(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, rgb_data));
-  munmap(rgb_data, width * height * 3);
+  GL(glBindTexture(GL_TEXTURE_EXTERNAL_OES, textures[0]));
+  GL(glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, src_img));
+  if (glGetError() != GL_NO_ERROR) {
+    std::cerr << "Failed to bind source EGL image to texture" << std::endl;
+    return false;
+  }
 
-  // 设置输出纹理
-  GL(glBindTexture(GL_TEXTURE_2D, textures[1]));
-  GL(glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, width, height, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, nullptr));
-  // 绑定输出纹理到帧缓冲区
+  // set output texture
+  // clang-format off
+  EGLint out_attribs[32] = {
+    EGL_WIDTH, width,
+    EGL_HEIGHT, height,
+    EGL_LINUX_DRM_FOURCC_EXT, DRM_FORMAT_NV12,
+    EGL_DMA_BUF_PLANE0_FD_EXT, out_fd,
+    EGL_DMA_BUF_PLANE0_PITCH_EXT, width,
+    EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
+    EGL_DMA_BUF_PLANE1_PITCH_EXT, width,
+    EGL_DMA_BUF_PLANE1_OFFSET_EXT, width * height,
+    EGL_NONE
+  };
+  // clang-format on
+  auto out_img = eglCreateImageKHR(display_, context_, EGL_LINUX_DMA_BUF_EXT, NULL, out_attribs);
+  GL(glBindTexture(GL_TEXTURE_EXTERNAL_OES, textures[1]));
+  GL(glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, out_img));
+
+  // bind output texture to framebuffer color attachment
   GL(glBindFramebuffer(GL_FRAMEBUFFER, framebuffer));
-  GL(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textures[1], 0));
+  GL(glFramebufferTexture2D(
+      GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_EXTERNAL_OES, textures[1], 0));
 
   if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
     std::cerr << "frame buffer is not complete" << std::endl;
@@ -285,7 +333,7 @@ bool OpenGLESAccelerator::rgb8_to_nv12(int in_fd, int out_fd, int width, int hei
   GL(glUseProgram(gl_program.id()));
 
   GL(glActiveTexture(GL_TEXTURE0));
-  GL(glBindTexture(GL_TEXTURE_2D, textures[0]));
+  GL(glBindTexture(GL_TEXTURE_EXTERNAL_OES, textures[0]));
 
   GL(glEnableVertexAttribArray(0));
   GL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, verts));
@@ -299,18 +347,11 @@ bool OpenGLESAccelerator::rgb8_to_nv12(int in_fd, int out_fd, int width, int hei
   GL(glDisableVertexAttribArray(0));
   GL(glDisableVertexAttribArray(1));
   GL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-
-  // 从输出纹理读取数据并写入 out_fd
-  void* nv12_data = mmap(nullptr, width * height * 3 / 2, PROT_WRITE, MAP_SHARED, out_fd, 0);
-  if (nv12_data == MAP_FAILED) {
-    std::cerr << "Failed to map output file descriptor" << std::endl;
-    return false;
-  }
-  GL(glReadPixels(0, 0, width, height, GL_LUMINANCE, GL_UNSIGNED_BYTE, nv12_data));
-  munmap(nv12_data, width * height * 3 / 2);
-
   GL(glDeleteFramebuffers(1, &framebuffer));
   GL(glDeleteTextures(2, textures));
+
+  GL(eglDestroyImageKHR(display_, src_img));
+  GL(eglDestroyImageKHR(display_, out_img));
 
   return true;
 }
