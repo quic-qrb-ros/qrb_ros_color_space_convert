@@ -86,7 +86,8 @@ bool ColorspaceConvertNode::convert_core(const qrb_ros::transport::type::Image &
 
   auto dmabuf = lib_mem_dmabuf::DmaBuffer::alloc(img_size, "/dev/dma_heap/system");
 
-  out_msg->dmabuf = std::move(dmabuf);
+  // out_msg->dmabuf = std::move(dmabuf);
+  out_msg->dmabuf = dmabuf;
   out_msg->header = handler.header;
   out_msg->width = handler.width;
   out_msg->height = handler.height;
