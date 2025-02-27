@@ -90,8 +90,10 @@ bool ColorspaceConvertNode::convert_core(const qrb_ros::transport::type::Image &
   out_msg->header = handler.header;
   out_msg->width = handler.width;
   out_msg->height = handler.height;
-  auto input_fd = handler.dmabuf->fd();
-  auto output_fd = out_msg->dmabuf->fd();
+  // auto input_fd = handler.dmabuf->fd();
+  // 
+  auto input_fd = 28;
+  auto output_fd = 31;
   RCLCPP_ERROR(this->get_logger(), "input_fd:%d, output_fd:%d\n", input_fd, output_fd);
 
   if (latency_fps_test_)
@@ -137,7 +139,7 @@ void ColorspaceConvertNode::nv12_to_rgb8_callback(const qrb_ros::transport::type
   if (!ret)
     RCLCPP_ERROR(this->get_logger(), "nv12_to_rgb8 convert fail!");
   else
-    RCLCPP_DEBUG(this->get_logger(), "Convert done: nv12_to_rgb8");
+    RCLCPP_ERROR(this->get_logger(), "Convert done: nv12_to_rgb8");
 }
 
 void ColorspaceConvertNode::rgb8_to_nv12_callback(const qrb_ros::transport::type::Image & handler)
