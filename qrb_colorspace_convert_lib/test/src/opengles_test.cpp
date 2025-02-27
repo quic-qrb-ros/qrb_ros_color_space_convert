@@ -47,6 +47,7 @@ static int mock_data_from_file(int size, const std::string & path)
   char * dst = (char *)mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
   if (dst == MAP_FAILED) {
     std::cerr << "storage data: mmap failed" << std::endl;
+    close(fd);
     return -1;
   }
 
@@ -55,6 +56,9 @@ static int mock_data_from_file(int size, const std::string & path)
     ifs.read(dst, size);
   } else {
     std::cerr << "open file: " << path << "failed" << std::endl;
+    munmap(dst, size);
+    close(fd);
+    return -1;
   }
   ifs.close();
 
@@ -67,6 +71,7 @@ static void dump_data_to_file(int fd, int size, const std::string & path)
   char * dst = (char *)mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
   if (dst == MAP_FAILED) {
     std::cerr << "dump_data_to_file: mmap failed" << std::endl;
+    close(fd);
     return;
   }
 
@@ -79,6 +84,7 @@ static void dump_data_to_file(int fd, int size, const std::string & path)
   out.close();
 
   munmap(dst, size);
+  close(fd);
 }
 
 int test_nv12_to_rgb8()
@@ -152,6 +158,16 @@ int test_rgb8_to_nv12()
 
 int main()
 {
+  if (access("/data/src.yuv", F_OK) != 0) {
+    std::cerr << "File /data/src.yuv does not exist" << std::endl;
+    return 1;
+  }
+
+  if (access("/data/src.rgb8", F_OK) != 0) {
+    std::cerr << "File /data/src.rgb8 does not exist" << std::endl;
+    return 1;
+  }
+
   test_nv12_to_rgb8();
   test_rgb8_to_nv12();
   return 0;
