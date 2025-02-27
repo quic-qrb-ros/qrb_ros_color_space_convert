@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #include "qrb_colorspace_convert_lib/colorspace_convert.hpp"
-
 #include <drm/drm_fourcc.h>
-
 #include <iostream>
+#include <fcntl.h>
+#include <unistd.h>
 
 namespace qrb::colorspace_convert_lib
 {
@@ -86,12 +86,23 @@ bool OpenGLESAccelerator::egl_deinit()
   return true;
 }
 
+void check_fd(int fd, const char *operation) {
+    if (fd == -1) {
+        perror(operation);
+        exit(EXIT_FAILURE);
+    }
+}
+
 bool OpenGLESAccelerator::nv12_to_rgb8(int in_fd, int out_fd, int width, int height)
 {
   if (!initialized_ && !egl_init()) {
     std::cerr << "EGL init failed" << std::endl;
     return false;
   }
+
+  // Check file descriptors
+  check_fd(in_fd, "open in_fd");
+  check_fd(out_fd, "open out_fd");
 
   static const char * vertex_shader = R"(
     #version 320 es
@@ -217,6 +228,16 @@ bool OpenGLESAccelerator::nv12_to_rgb8(int in_fd, int out_fd, int width, int hei
   GL(eglDestroyImageKHR(display_, src_img));
   GL(eglDestroyImageKHR(display_, out_img));
 
+  // Close file descriptors
+  if (close(in_fd) == -1) {
+    perror("close in_fd");
+    return false;
+  }
+  if (close(out_fd) == -1) {
+    perror("close out_fd");
+    return false;
+  }
+
   return true;
 }
 
@@ -226,6 +247,10 @@ bool OpenGLESAccelerator::rgb8_to_nv12(int in_fd, int out_fd, int width, int hei
     std::cerr << "EGL init failed" << std::endl;
     return false;
   }
+
+  // Check file descriptors
+  check_fd(in_fd, "open in_fd");
+  check_fd(out_fd, "open out_fd");
 
   static const char * vertex_shader = R"(
     #version 320 es
@@ -353,7 +378,15 @@ bool OpenGLESAccelerator::rgb8_to_nv12(int in_fd, int out_fd, int width, int hei
   GL(eglDestroyImageKHR(display_, src_img));
   GL(eglDestroyImageKHR(display_, out_img));
 
+  // Close file descriptors
+  if (close(in_fd) == -1) {
+    perror("close in_fd");
+    return false;
+  }
+  if (close(out_fd) == -1) {
+    perror("close out_fd");
+    return false;
+  }
   return true;
 }
-
 }  // namespace qrb::colorspace_convert_lib

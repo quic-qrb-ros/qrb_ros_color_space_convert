@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #include "qrb_colorspace_convert_lib/colorspace_convert.hpp"
-
-// #include <BufferAllocator/BufferAllocator.h>
 #include <fcntl.h>
 #include <linux/dma-buf.h>
 #include <linux/dma-heap.h>
@@ -12,8 +10,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-
 #include <fstream>
+#include <iostream>
 
 #define ION_SECURE_HEAP_ALIGNMENT (0x100000)
 #define ALIGN(x, y) (((x) + (y)-1) & (~((y)-1)))
@@ -35,6 +33,7 @@ static int alloc_dma_buf(int size)
     close(heap_fd);
     return -1;
   }
+  close(heap_fd); // Close heap_fd after allocation
   return heap_data.fd;
 }
 
@@ -55,7 +54,7 @@ static int mock_data_from_file(int size, const std::string & path)
   if (ifs.is_open()) {
     ifs.read(dst, size);
   } else {
-    std::cerr << "open file: " << path << "failed" << std::endl;
+    std::cerr << "open file: " << path << " failed" << std::endl;
     munmap(dst, size);
     close(fd);
     return -1;
@@ -79,7 +78,7 @@ static void dump_data_to_file(int fd, int size, const std::string & path)
   if (out.is_open()) {
     out.write(dst, size);
   } else {
-    std::cerr << "open file: " << path << "failed" << std::endl;
+    std::cerr << "open file: " << path << " failed" << std::endl;
   }
   out.close();
 
@@ -95,7 +94,8 @@ int test_nv12_to_rgb8()
   int align_height = ALIGN(height, 1);
   int align_width = ALIGN(width, 64);
 
-  std::cout << "aheight:" << align_height << "awidth"<< align_width << std::endl;
+  std::cout << "align_height:" << align_height << std::endl;
+  std::cout << " align_width:" << align_width << std::endl;
 
   int input_fd = mock_data_from_file(align_width * align_height * 8, "/data/src.yuv");
   int output_fd = alloc_dma_buf(align_width * align_height * 8);
@@ -131,7 +131,8 @@ int test_rgb8_to_nv12()
   int align_height = ALIGN(height, 1);
   int align_width = ALIGN(width, 256);
 
-  std::cout << "aheight:" << align_height << "awidth"<< align_width << std::endl;
+  std::cout << "align_height:" << align_height << std::endl;
+  std::cout << " align_width:" << align_width << std::endl;
 
   int input_fd = mock_data_from_file(align_width * align_height * 8, "/data/src.rgb8");
   int output_fd = alloc_dma_buf(align_width * align_height * 8);
