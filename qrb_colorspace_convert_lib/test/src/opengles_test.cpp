@@ -83,8 +83,8 @@ static void dump_data_to_file(int fd, int size, const std::string & path)
 
 int test_nv12_to_rgb8()
 {
-  int width = 1280;
-  int height = 1920;
+  int width = 1920;
+  int height = 1080;
 
   int align_height = ALIGN(height, 32);
   int align_width = ALIGN(width, 64);
@@ -119,8 +119,8 @@ int test_nv12_to_rgb8()
 
 int test_rgb8_to_nv12()
 {
-  int width = 1280;
-  int height = 1920;
+  int width = 1920;
+  int height = 1080;
 
   int align_height = ALIGN(height, 32);
   int align_width = ALIGN(width, 64);
