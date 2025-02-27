@@ -90,10 +90,9 @@ bool ColorspaceConvertNode::convert_core(const qrb_ros::transport::type::Image &
   out_msg->header = handler.header;
   out_msg->width = handler.width;
   out_msg->height = handler.height;
-  // auto input_fd = handler.dmabuf->fd();
-  // 
-  auto input_fd = 28;
-  auto output_fd = 31;
+  auto input_fd = handler.dmabuf->fd();
+  auto output_fd = out_msg->dmabuf->fd();
+
   RCLCPP_ERROR(this->get_logger(), "input_fd:%d, output_fd:%d\n", input_fd, output_fd);
 
   if (latency_fps_test_)
