@@ -16,58 +16,30 @@
 #define ION_SECURE_HEAP_ALIGNMENT (0x100000)
 #define ALIGN(x, y) (((x) + (y)-1) & (~((y)-1)))
 
-static int alloc_dma_buf(int size)
-{
-  int heap_fd = open("/dev/dma_heap/system", O_RDONLY | O_CLOEXEC);
-  if (heap_fd < 0) {
-    std::cerr << "open dma heap failed" << std::endl;
-    return -1;
-  }
-
-  struct dma_heap_allocation_data heap_data = {};
-  heap_data.len = size;
-  heap_data.fd_flags = O_RDWR | O_CLOEXEC;
-
-  if (ioctl(heap_fd, DMA_HEAP_IOCTL_ALLOC, &heap_data) != 0) {
-    std::cerr << "dma heap alloc failed, len: " << heap_data.len << std::endl;
-    close(heap_fd);
-    return -1;
-  }
-  close(heap_fd); // Close heap_fd after allocation
-  return heap_data.fd;
-}
-
-static int mock_data_from_file(int size, const std::string & path)
+static int create_aligned_image(int width, int height, int format, int size)
 {
   int fd = alloc_dma_buf(size);
   if (fd <= 0) {
     return -1;
   }
-  char * dst = (char *)mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  char *dst = (char *)mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
   if (dst == MAP_FAILED) {
     std::cerr << "storage data: mmap failed" << std::endl;
     close(fd);
     return -1;
   }
 
-  std::ifstream ifs(path, std::ios::in | std::ios::binary);
-  if (ifs.is_open()) {
-    ifs.read(dst, size);
-  } else {
-    std::cerr << "open file: " << path << " failed" << std::endl;
-    munmap(dst, size);
-    close(fd);
-    return -1;
+  for (int i = 0; i < size; ++i) {
+    dst[i] = static_cast<char>(i % 256); // 简单的填充数据
   }
-  ifs.close();
 
   munmap(dst, size);
   return fd;
 }
 
-static void dump_data_to_file(int fd, int size, const std::string & path)
+static void dump_data_to_file(int fd, int size, const std::string &path)
 {
-  char * dst = (char *)mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
+  char *dst = (char *)mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
   if (dst == MAP_FAILED) {
     std::cerr << "dump_data_to_file: mmap failed" << std::endl;
     close(fd);
@@ -97,8 +69,8 @@ int test_nv12_to_rgb8()
   std::cout << "align_height:" << align_height << std::endl;
   std::cout << " align_width:" << align_width << std::endl;
 
-  int input_fd = mock_data_from_file(align_width * align_height * 8, "/data/src.yuv");
-  int output_fd = alloc_dma_buf(align_width * align_height * 8);
+  int input_fd = create_aligned_image(align_width, align_height, DRM_FORMAT_NV12, align_width * align_height * 4);
+  int output_fd = alloc_dma_buf(align_width * align_height * 4);
 
   std::cout << "infd: " << input_fd << ", out fd: " << output_fd << std::endl;
 
@@ -114,7 +86,7 @@ int test_nv12_to_rgb8()
     std::cerr << "nv12 to rgb8 failed" << std::endl;
   } else {
     std::cout << "nv12 to rgb8 success" << std::endl;
-    dump_data_to_file(output_fd, align_width * align_height * 8, "/data/dst.rgb8");
+    dump_data_to_file(output_fd, align_width * align_height * 4, "/data/dst.rgb8");
   }
 
   close(input_fd);
@@ -134,7 +106,7 @@ int test_rgb8_to_nv12()
   std::cout << "align_height:" << align_height << std::endl;
   std::cout << " align_width:" << align_width << std::endl;
 
-  int input_fd = mock_data_from_file(align_width * align_height * 8, "/data/src.rgb8");
+  int input_fd = create_aligned_image(align_width, align_height, DRM_FORMAT_BGR888, align_width * align_height * 4);
   int output_fd = alloc_dma_buf(align_width * align_height * 8);
 
   if (input_fd < 0 || output_fd < 0) {
@@ -148,7 +120,7 @@ int test_rgb8_to_nv12()
     std::cerr << "rgb8 to nv12 failed" << std::endl;
   } else {
     std::cout << "rgb8 to nv12 success" << std::endl;
-    dump_data_to_file(output_fd, align_width * align_height * 8, "/data/dst.yuv");
+    dump_data_to_file(output_fd, align_width * align_height * 4, "/data/dst.yuv");
   }
 
   close(input_fd);
@@ -159,16 +131,6 @@ int test_rgb8_to_nv12()
 
 int main()
 {
-  if (access("/data/src.yuv", F_OK) != 0) {
-    std::cerr << "File /data/src.yuv does not exist" << std::endl;
-    return 1;
-  }
-
-  if (access("/data/src.rgb8", F_OK) != 0) {
-    std::cerr << "File /data/src.rgb8 does not exist" << std::endl;
-    return 1;
-  }
-
   test_nv12_to_rgb8();
   test_rgb8_to_nv12();
   return 0;
