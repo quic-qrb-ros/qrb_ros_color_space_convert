@@ -86,8 +86,11 @@ int test_nv12_to_rgb8()
   int width = 1920;
   int height = 1080;
 
-  int align_height = ALIGN(height, 32);
-  int align_width = ALIGN(width, 128);
+  // int align_height = ALIGN(height, 32);
+  // int align_width = ALIGN(width, 128);
+
+  int align_height = 1080;
+  int align_width = 1920;
 
   int input_fd = mock_data_from_file(align_width * align_height * 3, "/data/src.yuv");
   int output_fd = alloc_dma_buf(align_width * align_height * 4);
@@ -128,8 +131,11 @@ int test_rgb8_to_nv12()
   int width = 1920;
   int height = 1080;
 
-  int align_height = ALIGN(height, 32);
-  int align_width = ALIGN(width, 128);
+  // int align_height = ALIGN(height, 32);
+  // int align_width = ALIGN(width, 128);
+
+  int align_height = 1080;
+  int align_width = 1920;
 
   int input_fd = mock_data_from_file(align_width * align_height * 3, "/data/src.rgb8");
   int output_fd = alloc_dma_buf(align_width * align_height * 4);
