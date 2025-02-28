@@ -11,6 +11,7 @@ using namespace qrb_ros::transport::image_utils;
 constexpr char input_topic_name[] = "image_raw";
 constexpr char output_topic_name[] = "image";
 const int calculate_time = 5;
+#define ALIGN(x, y) (((x) + (y)-1) & (~((y)-1)))
 
 namespace qrb_ros::colorspace_convert
 {
@@ -67,8 +68,8 @@ bool ColorspaceConvertNode::convert_core(const qrb_ros::transport::type::Image &
     node_start_time_ = std::chrono::steady_clock::now();
 
   std::string encoding = handler.encoding;
-  uint32_t alignd_width = align_width(handler.width);
-  uint32_t alignd_height = align_height(handler.height);
+  uint32_t alignd_width = ALIGN(handler.width, 64);
+  uint32_t alignd_height = ALIGN(handler.height, 1);
 
   if (encoding != "nv12" && encoding != "rgb8") {
     RCLCPP_ERROR(this->get_logger(), "Unsupported image encoding: %s", encoding.c_str());

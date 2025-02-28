@@ -12,10 +12,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-
 #include <fstream>
 
-#define ION_SECURE_HEAP_ALIGNMENT (0x100000)
 #define ALIGN(x, y) (((x) + (y)-1) & (~((y)-1)))
 
 static int alloc_dma_buf(int size)
@@ -66,7 +64,7 @@ static void dump_data_to_file(int fd, int size, const std::string & path)
 {
   char * dst = (char *)mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
   if (dst == MAP_FAILED) {
-    std::cerr << "mmap failed" << std::endl;
+    std::cerr << "dump file mmap failed" << std::endl;
     return;
   }
 
@@ -86,19 +84,16 @@ int test_nv12_to_rgb8()
   int width = 1920;
   int height = 1080;
 
-  // int align_height = ALIGN(height, 32);
-  // int align_width = ALIGN(width, 128);
+  int align_height = ALIGN(height, 1);
+  int align_width = ALIGN(width, 64);
 
-  int align_height = 1080;
-  int align_width = 1920;
+  int input_fd = mock_data_from_file(align_width * align_height * 1.5, "/data/src.yuv");
+  int output_fd = alloc_dma_buf(align_width * align_height * 3);
 
-  int input_fd = mock_data_from_file(align_width * align_height * 3, "/data/src.yuv");
-  int output_fd = alloc_dma_buf(align_width * align_height * 4);
-
-  std::cout << "infd: " << input_fd << ", out fd: " << output_fd << std::endl;
+  std::cout << "in fd: " << input_fd << ", out fd: " << output_fd << std::endl;
 
   if (input_fd < 0 || output_fd < 0) {
-    std::cout << "BufferAllocator::Alloc failed" << std::endl;
+    std::cout << "buffer alloc failed" << std::endl;
     return 1;
   }
 
@@ -117,7 +112,7 @@ int test_nv12_to_rgb8()
     std::cerr << "nv12 to rgb8 failed" << std::endl;
   } else {
     std::cout << "nv12 to rgb8 success" << std::endl;
-    dump_data_to_file(dup_fd, align_width * align_height * 4, "/data/dst.rgb8");
+    dump_data_to_file(output_fd, align_width * align_height * 3, "/data/dst.rgb8");
   }
 
   close(input_fd);
@@ -131,17 +126,14 @@ int test_rgb8_to_nv12()
   int width = 1920;
   int height = 1080;
 
-  // int align_height = ALIGN(height, 32);
-  // int align_width = ALIGN(width, 128);
+  int align_height = ALIGN(height, 1);
+  int align_width = ALIGN(width, 256);
 
-  int align_height = 1080;
-  int align_width = 1920;
-
-  int input_fd = mock_data_from_file(align_width * align_height * 3, "/data/src.rgb8");
-  int output_fd = alloc_dma_buf(align_width * align_height * 4);
+  int input_fd = mock_data_from_file(align_width * align_height * 1.5, "/data/src.rgb8");
+  int output_fd = alloc_dma_buf(align_width * align_height * 3);
 
   if (input_fd < 0 || output_fd < 0) {
-    std::cout << "BufferAllocator::Alloc failed" << std::endl;
+    std::cout << "buffer alloc failed" << std::endl;
     return 1;
   }
 
@@ -158,7 +150,7 @@ int test_rgb8_to_nv12()
     std::cerr << "rgb8 to nv12 failed" << std::endl;
   } else {
     std::cout << "rgb8 to nv12 success" << std::endl;
-    dump_data_to_file(dup_fd, align_width * align_height * 4, "/data/dst.yuv");
+    dump_data_to_file(output_fd, align_width * align_height * 3, "/data/dst.yuv");
   }
 
   close(input_fd);
