@@ -37,6 +37,27 @@ static int create_aligned_image(int width, int height, int format, int size)
   return fd;
 }
 
+static int alloc_dma_buf(int size)
+{
+  int heap_fd = open("/dev/dma_heap/system", O_RDONLY | O_CLOEXEC);
+  if (heap_fd < 0) {
+    std::cerr << "open dma heap failed" << std::endl;
+    return -1;
+  }
+
+  struct dma_heap_allocation_data heap_data = {};
+  heap_data.len = size;
+  heap_data.fd_flags = O_RDWR | O_CLOEXEC;
+
+  if (ioctl(heap_fd, DMA_HEAP_IOCTL_ALLOC, &heap_data) != 0) {
+    std::cerr << "dma heap alloc failed, len: " << heap_data.len << std::endl;
+    close(heap_fd);
+    return -1;
+  }
+  close(heap_fd); // Close heap_fd after allocation
+  return heap_data.fd;
+}
+
 static void dump_data_to_file(int fd, int size, const std::string &path)
 {
   char *dst = (char *)mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
