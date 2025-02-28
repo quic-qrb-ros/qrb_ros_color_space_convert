@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #include "qrb_colorspace_convert_lib/colorspace_convert.hpp"
+
 #include <drm/drm_fourcc.h>
+
 #include <iostream>
-#include <fcntl.h>
-#include <unistd.h>
 
 namespace qrb::colorspace_convert_lib
 {
@@ -86,35 +86,10 @@ bool OpenGLESAccelerator::egl_deinit()
   return true;
 }
 
-void check_fd(int fd, const char *operation) {
-    if (fd == -1) {
-        perror(operation);
-        exit(EXIT_FAILURE);
-    }
-}
-
 bool OpenGLESAccelerator::nv12_to_rgb8(int in_fd, int out_fd, int width, int height)
 {
   if (!initialized_ && !egl_init()) {
     std::cerr << "EGL init failed" << std::endl;
-    return false;
-  }
-
-  // Check file descriptors
-  check_fd(in_fd, "open in_fd");
-  check_fd(out_fd, "open out_fd");
-
-  // 复制文件描述符
-  int in_fd_copy = dup(in_fd);
-  int out_fd_copy = dup(out_fd);
-
-  if (in_fd_copy == -1) {
-    perror("dup in_fd");
-    return false;
-  }
-  if (out_fd_copy == -1) {
-    perror("dup out_fd");
-    close(in_fd_copy);
     return false;
   }
 
@@ -161,7 +136,7 @@ bool OpenGLESAccelerator::nv12_to_rgb8(int in_fd, int out_fd, int width, int hei
     EGL_WIDTH, width,
     EGL_HEIGHT, height,
     EGL_LINUX_DRM_FOURCC_EXT, DRM_FORMAT_NV12,
-    EGL_DMA_BUF_PLANE0_FD_EXT, in_fd_copy,
+    EGL_DMA_BUF_PLANE0_FD_EXT, in_fd,
     EGL_DMA_BUF_PLANE0_PITCH_EXT, width,
     EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
     EGL_DMA_BUF_PLANE1_PITCH_EXT, width,
@@ -170,20 +145,8 @@ bool OpenGLESAccelerator::nv12_to_rgb8(int in_fd, int out_fd, int width, int hei
   };
   // clang-format on
   auto src_img = eglCreateImageKHR(display_, context_, EGL_LINUX_DMA_BUF_EXT, NULL, in_attribs);
-  if (src_img == EGL_NO_IMAGE_KHR) {
-    std::cerr << "Failed to create source EGL image: " << std::hex << eglGetError() << std::endl;
-    close(in_fd_copy);
-    close(out_fd_copy);
-    return false;
-  }
   GL(glBindTexture(GL_TEXTURE_EXTERNAL_OES, textures[0]));
   GL(glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, src_img));
-  if (glGetError() != GL_NO_ERROR) {
-    std::cerr << "Failed to bind source EGL image to texture" << std::endl;
-    close(in_fd_copy);
-    close(out_fd_copy);
-    return false;
-  }
 
   // set output texture
   // clang-format off
@@ -191,7 +154,7 @@ bool OpenGLESAccelerator::nv12_to_rgb8(int in_fd, int out_fd, int width, int hei
     EGL_WIDTH, width,
     EGL_HEIGHT, height,
     EGL_LINUX_DRM_FOURCC_EXT, DRM_FORMAT_BGR888,  // for external RGB888
-    EGL_DMA_BUF_PLANE0_FD_EXT, out_fd_copy,
+    EGL_DMA_BUF_PLANE0_FD_EXT, out_fd,
     EGL_DMA_BUF_PLANE0_PITCH_EXT, width * 3,
     EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
     EGL_NONE
@@ -208,8 +171,6 @@ bool OpenGLESAccelerator::nv12_to_rgb8(int in_fd, int out_fd, int width, int hei
 
   if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
     std::cerr << "frame buffer is not complete" << std::endl;
-    close(in_fd_copy);
-    close(out_fd_copy);
     return false;
   }
 
@@ -223,8 +184,6 @@ bool OpenGLESAccelerator::nv12_to_rgb8(int in_fd, int out_fd, int width, int hei
 
   GLProgram gl_program;
   if (!gl_program.set_shaders(vertex_shader, fragment_shader)) {
-    close(in_fd_copy);
-    close(out_fd_copy);
     return false;
   }
   GL(glUseProgram(gl_program.id()));
@@ -250,26 +209,6 @@ bool OpenGLESAccelerator::nv12_to_rgb8(int in_fd, int out_fd, int width, int hei
   GL(eglDestroyImageKHR(display_, src_img));
   GL(eglDestroyImageKHR(display_, out_img));
 
-  // Close copied file descriptors
-  if (close(in_fd_copy) == -1) {
-    perror("close in_fd_copy");
-    return false;
-  }
-  if (close(out_fd_copy) == -1) {
-    perror("close out_fd_copy");
-    return false;
-  }
-
-  // Close original file descriptors
-  if (close(in_fd) == -1) {
-    perror("close in_fd");
-    return false;
-  }
-  if (close(out_fd) == -1) {
-    perror("close out_fd");
-    return false;
-  }
-
   return true;
 }
 
@@ -277,24 +216,6 @@ bool OpenGLESAccelerator::rgb8_to_nv12(int in_fd, int out_fd, int width, int hei
 {
   if (!initialized_ && !egl_init()) {
     std::cerr << "EGL init failed" << std::endl;
-    return false;
-  }
-
-  // Check file descriptors
-  check_fd(in_fd, "open in_fd");
-  check_fd(out_fd, "open out_fd");
-
-  // 复制文件描述符
-  int in_fd_copy = dup(in_fd);
-  int out_fd_copy = dup(out_fd);
-
-  if (in_fd_copy == -1) {
-    perror("dup in_fd");
-    return false;
-  }
-  if (out_fd_copy == -1) {
-    perror("dup out_fd");
-    close(in_fd_copy);
     return false;
   }
 
@@ -343,27 +264,15 @@ bool OpenGLESAccelerator::rgb8_to_nv12(int in_fd, int out_fd, int width, int hei
     EGL_WIDTH, width,
     EGL_HEIGHT, height,
     EGL_LINUX_DRM_FOURCC_EXT, DRM_FORMAT_BGR888,  // for external RGB888,
-    EGL_DMA_BUF_PLANE0_FD_EXT, in_fd_copy,
+    EGL_DMA_BUF_PLANE0_FD_EXT, in_fd,
     EGL_DMA_BUF_PLANE0_PITCH_EXT, width * 3,
     EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
     EGL_NONE
   };
   // clang-format on
   auto src_img = eglCreateImageKHR(display_, context_, EGL_LINUX_DMA_BUF_EXT, NULL, in_attribs);
-  if (src_img == EGL_NO_IMAGE_KHR) {
-    std::cerr << "Failed to create source EGL image: " << std::hex << eglGetError() << std::endl;
-    close(in_fd_copy);
-    close(out_fd_copy);
-    return false;
-  }
   GL(glBindTexture(GL_TEXTURE_EXTERNAL_OES, textures[0]));
   GL(glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, src_img));
-  if (glGetError() != GL_NO_ERROR) {
-    std::cerr << "Failed to bind source EGL image to texture" << std::endl;
-    close(in_fd_copy);
-    close(out_fd_copy);
-    return false;
-  }
 
   // set output texture
   // clang-format off
@@ -371,7 +280,7 @@ bool OpenGLESAccelerator::rgb8_to_nv12(int in_fd, int out_fd, int width, int hei
     EGL_WIDTH, width,
     EGL_HEIGHT, height,
     EGL_LINUX_DRM_FOURCC_EXT, DRM_FORMAT_NV12,
-    EGL_DMA_BUF_PLANE0_FD_EXT, out_fd_copy,
+    EGL_DMA_BUF_PLANE0_FD_EXT, out_fd,
     EGL_DMA_BUF_PLANE0_PITCH_EXT, width,
     EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
     EGL_DMA_BUF_PLANE1_PITCH_EXT, width,
@@ -390,8 +299,6 @@ bool OpenGLESAccelerator::rgb8_to_nv12(int in_fd, int out_fd, int width, int hei
 
   if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
     std::cerr << "frame buffer is not complete" << std::endl;
-    close(in_fd_copy);
-    close(out_fd_copy);
     return false;
   }
 
@@ -405,8 +312,6 @@ bool OpenGLESAccelerator::rgb8_to_nv12(int in_fd, int out_fd, int width, int hei
 
   GLProgram gl_program;
   if (!gl_program.set_shaders(vertex_shader, fragment_shader)) {
-    close(in_fd_copy);
-    close(out_fd_copy);
     return false;
   }
   GL(glUseProgram(gl_program.id()));
@@ -432,26 +337,7 @@ bool OpenGLESAccelerator::rgb8_to_nv12(int in_fd, int out_fd, int width, int hei
   GL(eglDestroyImageKHR(display_, src_img));
   GL(eglDestroyImageKHR(display_, out_img));
 
-  // Close copied file descriptors
-  if (close(in_fd_copy) == -1) {
-    perror("close in_fd_copy");
-    return false;
-  }
-  if (close(out_fd_copy) == -1) {
-    perror("close out_fd_copy");
-    return false;
-  }
-
-  // Close original file descriptors
-  if (close(in_fd) == -1) {
-    perror("close in_fd");
-    return false;
-  }
-  if (close(out_fd) == -1) {
-    perror("close out_fd");
-    return false;
-  }
-
   return true;
 }
+
 }  // namespace qrb::colorspace_convert_lib
