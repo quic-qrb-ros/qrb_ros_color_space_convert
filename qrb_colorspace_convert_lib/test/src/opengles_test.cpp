@@ -12,30 +12,10 @@
 #include <unistd.h>
 #include <fstream>
 #include <iostream>
+#include <drm/drm_fourcc.h>
 
 #define ION_SECURE_HEAP_ALIGNMENT (0x100000)
 #define ALIGN(x, y) (((x) + (y)-1) & (~((y)-1)))
-
-static int create_aligned_image(int width, int height, int format, int size)
-{
-  int fd = alloc_dma_buf(size);
-  if (fd <= 0) {
-    return -1;
-  }
-  char *dst = (char *)mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-  if (dst == MAP_FAILED) {
-    std::cerr << "storage data: mmap failed" << std::endl;
-    close(fd);
-    return -1;
-  }
-
-  for (int i = 0; i < size; ++i) {
-    dst[i] = static_cast<char>(i % 256); // 简单的填充数据
-  }
-
-  munmap(dst, size);
-  return fd;
-}
 
 static int alloc_dma_buf(int size)
 {
@@ -56,6 +36,27 @@ static int alloc_dma_buf(int size)
   }
   close(heap_fd); // Close heap_fd after allocation
   return heap_data.fd;
+}
+
+static int create_aligned_image(int width, int height, int format, int size)
+{
+  int fd = alloc_dma_buf(size);
+  if (fd <= 0) {
+    return -1;
+  }
+  char *dst = (char *)mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  if (dst == MAP_FAILED) {
+    std::cerr << "storage data: mmap failed" << std::endl;
+    close(fd);
+    return -1;
+  }
+
+  for (int i = 0; i < size; ++i) {
+    dst[i] = static_cast<char>(i % 256); // 简单的填充数据
+  }
+
+  munmap(dst, size);
+  return fd;
 }
 
 static void dump_data_to_file(int fd, int size, const std::string &path)
