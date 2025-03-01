@@ -68,12 +68,19 @@ bool ColorspaceConvertNode::convert_core(const qrb_ros::transport::type::Image &
     node_start_time_ = std::chrono::steady_clock::now();
 
   std::string encoding = handler.encoding;
-  uint32_t alignd_width = ALIGN(handler.width, 64);
-  uint32_t alignd_height = ALIGN(handler.height, 1);
-
   if (encoding != "nv12" && encoding != "rgb8") {
     RCLCPP_ERROR(this->get_logger(), "Unsupported image encoding: %s", encoding.c_str());
     return false;
+  }
+
+  uint32_t alignd_width = 0;
+  uint32_t alignd_height = 0;
+  if (encoding == "nv12") {
+    alignd_width = ALIGN(handler.width, 64);
+    alignd_height = ALIGN(handler.height, 1);
+  } else {
+    alignd_width = ALIGN(handler.width, 256);
+    alignd_height = ALIGN(handler.height, 1);
   }
 
   // core part
@@ -85,17 +92,16 @@ bool ColorspaceConvertNode::convert_core(const qrb_ros::transport::type::Image &
   else
     img_size = get_image_align_size(alignd_width, alignd_height, "nv12");
 
-  auto dmabuf = lib_mem_dmabuf::DmaBuffer::alloc(img_size, "/dev/dma_heap/system");
+  auto dmabuf = lib_mem_dmabuf::DmaBuffer::alloc(img_size * 4, "/dev/dma_heap/system");
 
-  // out_msg->dmabuf = std::move(dmabuf);
-  out_msg->dmabuf = dmabuf;
+  out_msg->dmabuf = std::move(dmabuf);
   out_msg->header = handler.header;
   out_msg->width = handler.width;
   out_msg->height = handler.height;
   auto input_fd = handler.dmabuf->fd();
   auto output_fd = out_msg->dmabuf->fd();
 
-  RCLCPP_ERROR(this->get_logger(), "input_fd:%d, output_fd:%d\n", input_fd, output_fd);
+  RCLCPP_DEBUG(this->get_logger(), "input_fd:%d, output_fd:%d\n", input_fd, output_fd);
 
   if (latency_fps_test_)
     convert_start_time_ = std::chrono::steady_clock::now();
@@ -140,7 +146,7 @@ void ColorspaceConvertNode::nv12_to_rgb8_callback(const qrb_ros::transport::type
   if (!ret)
     RCLCPP_ERROR(this->get_logger(), "nv12_to_rgb8 convert fail!");
   else
-    RCLCPP_ERROR(this->get_logger(), "Convert done: nv12_to_rgb8");
+    RCLCPP_DEBUG(this->get_logger(), "Convert done: nv12_to_rgb8");
 }
 
 void ColorspaceConvertNode::rgb8_to_nv12_callback(const qrb_ros::transport::type::Image & handler)
