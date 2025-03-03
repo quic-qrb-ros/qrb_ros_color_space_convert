@@ -81,14 +81,14 @@ static void dump_data_to_file(int fd, int size, const std::string & path)
 
 int test_nv12_to_rgb8()
 {
-  int width = 1920;
-  int height = 1080;
+  int width = 1280;
+  int height = 720;
 
   int align_height = ALIGN(height, 1);
   int align_width = ALIGN(width, 64);
 
-  int input_fd = mock_data_from_file(align_width * align_height * 8, "/data/src.yuv");
-  int output_fd = alloc_dma_buf(align_width * align_height * 8);
+  int input_fd = mock_data_from_file(align_width * align_height * 4, "/data/src.yuv");
+  int output_fd = alloc_dma_buf(align_width * align_height * 4);
 
   std::cout << "in fd: " << input_fd << ", out fd: " << output_fd << std::endl;
 
@@ -112,7 +112,7 @@ int test_nv12_to_rgb8()
     std::cerr << "nv12 to rgb8 failed" << std::endl;
   } else {
     std::cout << "nv12 to rgb8 success" << std::endl;
-    dump_data_to_file(output_fd, align_width * align_height * 8, "/data/dst.rgb8");
+    dump_data_to_file(output_fd, align_width * align_height * 4, "/data/dst.rgb8");
   }
 
   close(input_fd);
@@ -123,14 +123,14 @@ int test_nv12_to_rgb8()
 
 int test_rgb8_to_nv12()
 {
-  int width = 1920;
-  int height = 1080;
+  int width = 1280;
+  int height = 720;
 
   int align_height = ALIGN(height, 1);
   int align_width = ALIGN(width, 256);
 
-  int input_fd = mock_data_from_file(align_width * align_height * 8, "/data/src.rgb8");
-  int output_fd = alloc_dma_buf(align_width * align_height * 8);
+  int input_fd = mock_data_from_file(align_width * align_height * 3, "/data/src.rgb8");
+  int output_fd = alloc_dma_buf(align_width * align_height * 3);
 
   if (input_fd < 0 || output_fd < 0) {
     std::cout << "buffer alloc failed" << std::endl;
@@ -150,7 +150,7 @@ int test_rgb8_to_nv12()
     std::cerr << "rgb8 to nv12 failed" << std::endl;
   } else {
     std::cout << "rgb8 to nv12 success" << std::endl;
-    dump_data_to_file(output_fd, align_width * align_height * 8, "/data/dst.yuv");
+    dump_data_to_file(output_fd, align_width * align_height * 3, "/data/dst.yuv");
   }
 
   close(input_fd);
@@ -161,16 +161,6 @@ int test_rgb8_to_nv12()
 
 int main()
 {
-  if (access("/data/src.yuv", F_OK) != 0) {
-    std::cerr << "File /data/src.yuv does not exist" << std::endl;
-    return 1;
-  }
-
-  if (access("/data/src.rgb8", F_OK) != 0) {
-    std::cerr << "File /data/src.rgb8 does not exist" << std::endl;
-    return 1;
-  }
-
   test_nv12_to_rgb8();
   test_rgb8_to_nv12();
   return 0;
