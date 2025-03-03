@@ -11,7 +11,6 @@ using namespace qrb_ros::transport::image_utils;
 constexpr char input_topic_name[] = "image_raw";
 constexpr char output_topic_name[] = "image";
 const int calculate_time = 5;
-#define ALIGN(x, y) (((x) + (y)-1) & (~((y)-1)))
 
 namespace qrb_ros::colorspace_convert
 {
@@ -68,6 +67,9 @@ bool ColorspaceConvertNode::convert_core(const qrb_ros::transport::type::Image &
     node_start_time_ = std::chrono::steady_clock::now();
 
   std::string encoding = handler.encoding;
+  uint32_t alignd_width = align_width(handler.width);
+  uint32_t alignd_height = align_height(handler.height);
+
   if (encoding != "nv12" && encoding != "rgb8") {
     RCLCPP_ERROR(this->get_logger(), "Unsupported image encoding: %s", encoding.c_str());
     return false;
@@ -75,20 +77,12 @@ bool ColorspaceConvertNode::convert_core(const qrb_ros::transport::type::Image &
 
   // core part
   bool success = false;
-  uint32_t alignd_width = 0;
-  uint32_t alignd_height = 0;
-  int img_size = 0;
   auto out_msg = std::make_unique<qrb_ros::transport::type::Image>();
-
-  if (encoding == "nv12") {
-    alignd_width = ALIGN(handler.width, 64);
-    alignd_height = ALIGN(handler.height, 1);
-    img_size = get_image_align_size(alignd_width, alignd_height, "nv12");
-  } else {
-    alignd_width = ALIGN(handler.width, 256);
-    alignd_height = ALIGN(handler.height, 1);
-    img_size = get_image_align_size(alignd_width, alignd_height, "rgb8");
-  }
+  int img_size = 0;
+  if (encoding == "nv12")
+    img_size = get_image_align_size(handler.width, handler.height, "nv12");
+  else
+    img_size = get_image_align_size(handler.width, handler.height, "rgb8");
 
   auto dmabuf = lib_mem_dmabuf::DmaBuffer::alloc(img_size * 3, "/dev/dma_heap/system");
 
@@ -106,8 +100,6 @@ bool ColorspaceConvertNode::convert_core(const qrb_ros::transport::type::Image &
     close(output_fd);
     return -1;
   }
-
-  RCLCPP_DEBUG(this->get_logger(), "input_fd:%d, output_fd:%d\n", input_fd, output_fd);
 
   if (latency_fps_test_)
     convert_start_time_ = std::chrono::steady_clock::now();
