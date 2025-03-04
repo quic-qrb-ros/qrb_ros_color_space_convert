@@ -15,7 +15,7 @@
 
 #include <fstream>
 
-#define ALIGN(x, y) (((x) + (y) - 1) & (~((y) - 1)))
+#define ALIGN(x, y) (((x) + (y)-1) & (~((y)-1)))
 
 static int alloc_dma_buf(int size)
 {
@@ -37,13 +37,13 @@ static int alloc_dma_buf(int size)
   return heap_data.fd;
 }
 
-static int mock_data_from_file(int size, const std::string& path)
+static int mock_data_from_file(int size, const std::string & path)
 {
   int fd = alloc_dma_buf(size);
   if (fd <= 0) {
     return -1;
   }
-  char* dst = (char*)mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  char * dst = (char *)mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
   if (dst == MAP_FAILED) {
     std::cerr << "storage data: mmap failed" << std::endl;
     return -1;
@@ -61,9 +61,9 @@ static int mock_data_from_file(int size, const std::string& path)
   return fd;
 }
 
-static void dump_data_to_file(int fd, int size, const std::string& path)
+static void dump_data_to_file(int fd, int size, const std::string & path)
 {
-  char* dst = (char*)mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
+  char * dst = (char *)mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
   if (dst == MAP_FAILED) {
     std::cerr << "dump file mmap failed" << std::endl;
     return;

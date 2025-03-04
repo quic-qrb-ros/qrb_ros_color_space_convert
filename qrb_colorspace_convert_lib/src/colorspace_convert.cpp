@@ -93,7 +93,7 @@ bool OpenGLESAccelerator::nv12_to_rgb8(int in_fd, int out_fd, int width, int hei
     return false;
   }
 
-  static const char* vertex_shader = R"(
+  static const char * vertex_shader = R"(
     #version 320 es
     precision highp float;
 
@@ -109,7 +109,7 @@ bool OpenGLESAccelerator::nv12_to_rgb8(int in_fd, int out_fd, int width, int hei
     }
     )";
 
-  static const char* fragment_shader = R"(
+  static const char * fragment_shader = R"(
     #version 320 es
     #extension GL_OES_EGL_image_external_essl3 : require
 
@@ -166,8 +166,8 @@ bool OpenGLESAccelerator::nv12_to_rgb8(int in_fd, int out_fd, int width, int hei
 
   // bind output texture to framebuffer color attachment
   GL(glBindFramebuffer(GL_FRAMEBUFFER, framebuffer));
-  GL(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_EXTERNAL_OES,
-                            textures[1], 0));
+  GL(glFramebufferTexture2D(
+      GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_EXTERNAL_OES, textures[1], 0));
 
   if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
     std::cerr << "frame buffer is not complete" << std::endl;
@@ -219,7 +219,7 @@ bool OpenGLESAccelerator::rgb8_to_nv12(int in_fd, int out_fd, int width, int hei
     return false;
   }
 
-  static const char* vertex_shader = R"(
+  static const char * vertex_shader = R"(
     #version 320 es
     precision highp float;
 
@@ -235,7 +235,7 @@ bool OpenGLESAccelerator::rgb8_to_nv12(int in_fd, int out_fd, int width, int hei
     }
     )";
 
-  static const char* fragment_shader = R"(
+  static const char * fragment_shader = R"(
     #version 320 es
     #extension GL_OES_EGL_image_external_essl3 : require
     #extension GL_EXT_YUV_target : require
@@ -294,8 +294,8 @@ bool OpenGLESAccelerator::rgb8_to_nv12(int in_fd, int out_fd, int width, int hei
 
   // bind output texture to framebuffer color attachment
   GL(glBindFramebuffer(GL_FRAMEBUFFER, framebuffer));
-  GL(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_EXTERNAL_OES,
-                            textures[1], 0));
+  GL(glFramebufferTexture2D(
+      GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_EXTERNAL_OES, textures[1], 0));
 
   if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
     std::cerr << "frame buffer is not complete" << std::endl;

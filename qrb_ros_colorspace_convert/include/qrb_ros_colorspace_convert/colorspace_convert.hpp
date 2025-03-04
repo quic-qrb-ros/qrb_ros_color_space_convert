@@ -17,16 +17,16 @@ namespace qrb_ros::colorspace_convert
 class ColorspaceConvertNode : public rclcpp::Node
 {
 public:
-  explicit ColorspaceConvertNode(const rclcpp::NodeOptions& options);
+  explicit ColorspaceConvertNode(const rclcpp::NodeOptions & options);
 
 private:
   qrb::colorspace_convert_lib::OpenGLESAccelerator accelerator_;
   std::shared_ptr<rclcpp::Subscription<qrb_ros::transport::type::Image>> handle_sub_;
   std::shared_ptr<rclcpp::Publisher<qrb_ros::transport::type::Image>> handle_pub_;
   std::string conversion_type_;
-  void rgb8_to_nv12_callback(const qrb_ros::transport::type::Image& handler);
-  void nv12_to_rgb8_callback(const qrb_ros::transport::type::Image& handler);
-  bool convert_core(const qrb_ros::transport::type::Image& handler, const std::string& type);
+  void rgb8_to_nv12_callback(const qrb_ros::transport::type::Image & handler);
+  void nv12_to_rgb8_callback(const qrb_ros::transport::type::Image & handler);
+  bool convert_core(const qrb_ros::transport::type::Image & handler, const std::string & type);
 
   // test latency and fps
   rclcpp::TimerBase::SharedPtr fps_timer_;
