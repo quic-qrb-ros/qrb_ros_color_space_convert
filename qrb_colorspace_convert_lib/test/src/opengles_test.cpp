@@ -15,7 +15,7 @@
 
 #include <fstream>
 
-#define ALIGN(x, y) (((x) + (y)-1) & (~((y)-1)))
+#define ALIGN(x, y) (((x) + (y) - 1) & (~((y) - 1)))
 
 static int alloc_dma_buf(int size)
 {
