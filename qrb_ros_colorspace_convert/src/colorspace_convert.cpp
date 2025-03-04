@@ -67,8 +67,8 @@ bool ColorspaceConvertNode::convert_core(const qrb_ros::transport::type::Image &
     node_start_time_ = std::chrono::steady_clock::now();
 
   std::string encoding = handler.encoding;
-  uint32_t alignd_width = align_width(handler.width);
-  uint32_t alignd_height = align_height(handler.height);
+  uint32_t alignd_width = align_width(handler.width, encoding);
+  uint32_t alignd_height = align_height(handler.height, encoding);
 
   if (encoding != "nv12" && encoding != "rgb8") {
     RCLCPP_ERROR(this->get_logger(), "Unsupported image encoding: %s", encoding.c_str());
