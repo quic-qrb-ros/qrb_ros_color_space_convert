@@ -4,7 +4,7 @@
 #include "qrb_colorspace_convert_lib/opengles_common.hpp"
 
 // check GL function errors
-void check_gl_error(const char * file, int line)
+void check_gl_error(const char* file, int line)
 {
   GLenum error;
   std::string error_str;
@@ -49,7 +49,7 @@ GLProgram::~GLProgram()
   }
 }
 
-bool GLProgram::set_shaders(const std::string & vshader, const std::string & fshader)
+bool GLProgram::set_shaders(const std::string& vshader, const std::string& fshader)
 {
   GLint success = GL_NONE;
   const GLsizei error_log_size = 512;
@@ -65,7 +65,7 @@ bool GLProgram::set_shaders(const std::string & vshader, const std::string & fsh
     return false;
   }
 
-  const GLchar * code = vshader.c_str();
+  const GLchar* code = vshader.c_str();
 
   GL(glShaderSource(vs_, 1, &code, NULL))
   GL(glCompileShader(vs_));
