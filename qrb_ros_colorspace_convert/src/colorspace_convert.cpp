@@ -80,9 +80,9 @@ bool ColorspaceConvertNode::convert_core(const qrb_ros::transport::type::Image &
   auto out_msg = std::make_unique<qrb_ros::transport::type::Image>();
   int img_size = 0;
   if (encoding == "nv12")
-    img_size = get_image_align_size(handler.width, handler.height, "nv12");
-  else
     img_size = get_image_align_size(handler.width, handler.height, "rgb8");
+  else
+    img_size = get_image_align_size(handler.width, handler.height, "nv12");
 
   auto dmabuf = lib_mem_dmabuf::DmaBuffer::alloc(img_size * 3, "/dev/dma_heap/system");
 
