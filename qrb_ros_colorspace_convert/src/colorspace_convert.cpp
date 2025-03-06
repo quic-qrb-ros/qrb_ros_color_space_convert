@@ -67,8 +67,8 @@ bool ColorspaceConvertNode::convert_core(const qrb_ros::transport::type::Image &
     node_start_time_ = std::chrono::steady_clock::now();
 
   std::string encoding = handler.encoding;
-  uint32_t alignd_width = align_width(handler.width);
-  uint32_t alignd_height = align_height(handler.height);
+  uint32_t alignd_width = align_width(handler.width, encoding);
+  uint32_t alignd_height = align_height(handler.height, encoding);
 
   if (encoding != "nv12" && encoding != "rgb8") {
     RCLCPP_ERROR(this->get_logger(), "Unsupported image encoding: %s", encoding.c_str());
@@ -80,11 +80,11 @@ bool ColorspaceConvertNode::convert_core(const qrb_ros::transport::type::Image &
   auto out_msg = std::make_unique<qrb_ros::transport::type::Image>();
   int img_size = 0;
   if (encoding == "nv12")
-    img_size = get_image_align_size(alignd_width, alignd_height, "rgb8");
+    img_size = get_image_align_size(handler.width, handler.height, "rgb8");
   else
-    img_size = get_image_align_size(alignd_width, alignd_height, "nv12");
+    img_size = get_image_align_size(handler.width, handler.height, "nv12");
 
-  auto dmabuf = lib_mem_dmabuf::DmaBuffer::alloc(img_size, "/dev/dma_heap/system");
+  auto dmabuf = lib_mem_dmabuf::DmaBuffer::alloc(img_size * 3, "/dev/dma_heap/system");
 
   out_msg->dmabuf = std::move(dmabuf);
   out_msg->header = handler.header;
@@ -93,15 +93,23 @@ bool ColorspaceConvertNode::convert_core(const qrb_ros::transport::type::Image &
   auto input_fd = handler.dmabuf->fd();
   auto output_fd = out_msg->dmabuf->fd();
 
+  int dup_fd = dup(output_fd);
+  if (dup_fd < 0) {
+    perror("dup fd failed");
+    close(input_fd);
+    close(output_fd);
+    return -1;
+  }
+
   if (latency_fps_test_)
     convert_start_time_ = std::chrono::steady_clock::now();
 
   if (type == "nv12_to_rgb8") {
     out_msg->encoding = "rgb8";
-    success = accelerator_.nv12_to_rgb8(input_fd, output_fd, alignd_width, alignd_height);
+    success = accelerator_.nv12_to_rgb8(input_fd, dup_fd, alignd_width, alignd_height);
   } else if (type == "rgb8_to_nv12") {
     out_msg->encoding = "nv12";
-    success = accelerator_.rgb8_to_nv12(input_fd, output_fd, alignd_width, alignd_height);
+    success = accelerator_.rgb8_to_nv12(input_fd, dup_fd, alignd_width, alignd_height);
   }
 
   if (latency_fps_test_)

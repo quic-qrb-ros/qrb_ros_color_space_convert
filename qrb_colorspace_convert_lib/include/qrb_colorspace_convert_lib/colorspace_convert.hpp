@@ -4,6 +4,8 @@
 #ifndef QRB_COLORSPACE_CONVERT_LIB__COLORSPACE_CONVERT_HPP_
 #define QRB_COLORSPACE_CONVERT_LIB__COLORSPACE_CONVERT_HPP_
 
+#include <drm/drm_fourcc.h>
+
 #include "qrb_colorspace_convert_lib/opengles_common.hpp"
 
 namespace qrb::colorspace_convert_lib

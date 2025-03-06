@@ -20,6 +20,27 @@ target_link_libraries(${PROJECT_NAME}
   GLESv2
 )
 
+if(BUILD_TESTING)
+
+  include_directories(test/include)
+
+  macro(add_test_module module)
+    add_executable(${module}_test
+      test/src/${module}_test.cpp
+    )
+    install(TARGETS
+      ${module}_test
+      DESTINATION bin/
+    )
+  endmacro(add_test_module)
+
+  add_test_module(opengles)
+  target_link_libraries(opengles_test
+    ${PROJECT_NAME}
+  )
+
+endif()
+
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION 1)
 
 ament_auto_package()

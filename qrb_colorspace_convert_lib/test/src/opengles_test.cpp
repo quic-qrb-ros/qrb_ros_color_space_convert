@@ -15,8 +15,7 @@
 
 #include <fstream>
 
-#define ION_SECURE_HEAP_ALIGNMENT (0x100000)
-#define ALIGN(x, y) (((x) + (y)-1) & (~((y)-1)))
+#define ALIGN(x, y) (((x) + (y) - 1) & (~((y) - 1)))
 
 static int alloc_dma_buf(int size)
 {
@@ -66,7 +65,7 @@ static void dump_data_to_file(int fd, int size, const std::string & path)
 {
   char * dst = (char *)mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
   if (dst == MAP_FAILED) {
-    std::cerr << "mmap failed" << std::endl;
+    std::cerr << "dump file mmap failed" << std::endl;
     return;
   }
 
@@ -83,65 +82,80 @@ static void dump_data_to_file(int fd, int size, const std::string & path)
 
 int test_nv12_to_rgb8()
 {
-  int width = 1920;
-  int height = 1080;
+  int width = 1280;
+  int height = 720;
 
-  int align_height = ALIGN(height, 32);
-  int align_width = ALIGN(width, 128);
+  int align_height = ALIGN(height, 1);
+  int align_width = ALIGN(width, 64);
 
-  int input_fd = mock_data_from_file(align_width * align_height * 1.5, "/home/qrobot/src.yuv");
+  int input_fd = mock_data_from_file(align_width * align_height * 4, "/data/src.yuv");
   int output_fd = alloc_dma_buf(align_width * align_height * 4);
 
-  std::cout << "infd: " << input_fd << ", out fd: " << output_fd << std::endl;
+  std::cout << "in fd: " << input_fd << ", out fd: " << output_fd << std::endl;
 
   if (input_fd < 0 || output_fd < 0) {
-    std::cout << "BufferAllocator::Alloc failed" << std::endl;
+    std::cout << "buffer alloc failed" << std::endl;
     return 1;
+  }
+
+  int dup_fd = dup(output_fd);
+  if (dup_fd < 0) {
+    perror("dup fd failed");
+    close(input_fd);
+    close(output_fd);
+    return -1;
   }
 
   qrb::colorspace_convert_lib::OpenGLESAccelerator accelerator;
 
-  bool success = accelerator.nv12_to_rgb8(input_fd, output_fd, align_width, align_height);
+  bool success = accelerator.nv12_to_rgb8(input_fd, dup_fd, align_width, align_height);
   if (!success) {
     std::cerr << "nv12 to rgb8 failed" << std::endl;
   } else {
     std::cout << "nv12 to rgb8 success" << std::endl;
-    dump_data_to_file(output_fd, align_width * align_height * 4, "/home/qrobot/dst.rgb8");
+    dump_data_to_file(output_fd, align_width * align_height * 4, "/data/dst.rgb8");
   }
 
   close(input_fd);
-  close(output_fd);
+  close(dup_fd);
 
   return 0;
 }
 
 int test_rgb8_to_nv12()
 {
-  int width = 1920;
-  int height = 1080;
+  int width = 1280;
+  int height = 720;
 
-  int align_height = ALIGN(height, 32);
-  int align_width = ALIGN(width, 128);
+  int align_height = ALIGN(height, 1);
+  int align_width = ALIGN(width, 256);
 
-  int input_fd = mock_data_from_file(align_width * align_height * 3, "/home/qrobot/src.rgb8");
-  int output_fd = alloc_dma_buf(align_width * align_height * 1.5);
+  int input_fd = mock_data_from_file(align_width * align_height * 3, "/data/src.rgb8");
+  int output_fd = alloc_dma_buf(align_width * align_height * 3);
 
   if (input_fd < 0 || output_fd < 0) {
-    std::cout << "BufferAllocator::Alloc failed" << std::endl;
+    std::cout << "buffer alloc failed" << std::endl;
     return 1;
   }
 
+  int dup_fd = dup(output_fd);
+  if (dup_fd < 0) {
+    perror("dup fd failed");
+    close(input_fd);
+    close(output_fd);
+    return -1;
+  }
   qrb::colorspace_convert_lib::OpenGLESAccelerator accelerator;
-  bool success = accelerator.rgb8_to_nv12(input_fd, output_fd, align_width, align_height);
+  bool success = accelerator.rgb8_to_nv12(input_fd, dup_fd, align_width, align_height);
   if (!success) {
     std::cerr << "rgb8 to nv12 failed" << std::endl;
   } else {
     std::cout << "rgb8 to nv12 success" << std::endl;
-    dump_data_to_file(output_fd, align_width * align_height * 1.5, "/home/qrobot/dst.yuv");
+    dump_data_to_file(output_fd, align_width * align_height * 3, "/data/dst.yuv");
   }
 
   close(input_fd);
-  close(output_fd);
+  close(dup_fd);
 
   return 0;
 }
